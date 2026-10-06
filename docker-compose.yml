@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: college_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-college_db}
+      POSTGRES_USER: ${POSTGRES_USER:-college_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-college_user} -d ${POSTGRES_DB:-college_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: college_app
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-college_user}:${POSTGRES_PASSWORD:-change_me}@postgres:5432/${POSTGRES_DB:-college_db}
+      FRONTEND_URI: ${FRONTEND_URI:-http://localhost}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:

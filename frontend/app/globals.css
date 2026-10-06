@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #faf6ee;
+  --color-ink: #1c1024;
+  --color-maroon: #7a1e3f;
+  --color-maroon-dark: #551230;
+  --color-saffron: #f0a832;
+  --color-saffron-soft: #f7d9a0;
+  --color-teal: #0f6f6f;
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 22s linear infinite;
+}
+
+.grain {
+  background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+.hero-glow {
+  background:
+    radial-gradient(circle at 80% 10%, rgba(240, 168, 50, 0.35), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(15, 111, 111, 0.5), transparent 50%);
+}
+
+.dot-grid {
+  background-image: radial-gradient(rgba(28, 16, 36, 0.08) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+.outline-text {
+  -webkit-text-stroke: 1.5px rgba(250, 246, 238, 0.25);
+  color: transparent;
+}
