@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import RequirePermission, { usePermissionRefresh } from "@/components/RequirePermission";
 
 export default function AdminExams() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ name: "", course_id: "", semester: "", start_date: "", is_published: "0" });
+  usePermissionRefresh();
+  const canManage = hasPermission("EXAM_MANAGE");
 
   function load() {
     setLoading(true);
@@ -39,9 +42,10 @@ export default function AdminExams() {
   }
 
   return (
-    <>
+    <RequirePermission permission="EXAM_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Exams</h1>
       <p className="mt-1 text-ink/80">Exam schedules, results publishing, and admit cards.</p>
+      {canManage && (
       <form onSubmit={handleSubmit} className="mt-6 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-3">
         <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <input placeholder="Course ID" type="number" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
@@ -53,6 +57,7 @@ export default function AdminExams() {
         </select>
         <button className="rounded-full bg-maroon px-6 py-2.5 font-semibold text-cream">Create Exam</button>
       </form>
+      )}
       {message && <p className="mt-2 text-sm text-ink/70">{message}</p>}
       <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
         <table className="w-full min-w-[640px] text-sm">
@@ -82,6 +87,6 @@ export default function AdminExams() {
           </tbody>
         </table>
       </div>
-    </>
+    </RequirePermission>
   );
 }

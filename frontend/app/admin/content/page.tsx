@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import RequirePermission from "@/components/RequirePermission";
 
 export default function AdminContent() {
   const [materials, setMaterials] = useState<any[]>([]);
@@ -48,13 +49,13 @@ export default function AdminContent() {
   }
 
   return (
-    <>
+    <RequirePermission permission="CONTENT_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Content</h1>
       <p className="mt-1 text-ink/80">All uploaded materials and assignments.</p>
       <h2 className="mt-8 font-display text-xl font-bold text-maroon">Materials</h2>
       {renderTable(materials, "materials")}
       <h2 className="mt-8 font-display text-xl font-bold text-maroon">Assignments</h2>
       {renderTable(assignments, "assignments")}
-    </>
+    </RequirePermission>
   );
 }

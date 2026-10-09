@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import RequirePermission from "@/components/RequirePermission";
 
 export default function AdminNotices() {
   const [rows, setRows] = useState<any[]>([]);
@@ -15,7 +16,7 @@ export default function AdminNotices() {
   }, []);
 
   return (
-    <>
+    <RequirePermission permission="NOTICE_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Notices</h1>
       <p className="mt-1 text-ink/80">Institute-wide announcements.</p>
       <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
@@ -45,6 +46,6 @@ export default function AdminNotices() {
           </tbody>
         </table>
       </div>
-    </>
+    </RequirePermission>
   );
 }

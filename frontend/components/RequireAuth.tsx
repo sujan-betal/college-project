@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getAccessToken, getRole } from "@/lib/api";
+import { getAccessToken, getRole, refreshPermissions } from "@/lib/api";
 
 const roleHome: Record<string, string> = {
   ADMIN: "/admin",
@@ -30,7 +30,11 @@ export default function RequireAuth({
 
     if (userRole !== role) {
       router.replace(roleHome[userRole] || "/login");
+      return;
     }
+
+    // Pull fresh permissions so admin-side changes apply without re-login.
+    refreshPermissions();
   }, [role, router]);
 
   return <>{children}</>;

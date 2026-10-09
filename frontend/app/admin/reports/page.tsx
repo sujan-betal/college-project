@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import RequirePermission from "@/components/RequirePermission";
 
 export default function AdminReports() {
   const [data, setData] = useState<any>(null);
@@ -15,7 +16,7 @@ export default function AdminReports() {
   }, []);
 
   return (
-    <>
+    <RequirePermission permission="REPORT_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Reports</h1>
       <p className="mt-1 text-ink/80">Key institutional metrics.</p>
       {loading ? (
@@ -48,6 +49,6 @@ export default function AdminReports() {
           ))}
         </div>
       )}
-    </>
+    </RequirePermission>
   );
 }

@@ -1,5 +1,10 @@
+import RequirePermission from "@/components/RequirePermission";
 import UsersAdminTable from "@/components/UsersAdminTable";
 
 export default function AdminTeachers() {
-  return <UsersAdminTable role="TEACHER" title="Teachers" />;
+  return (
+    <RequirePermission permission="USER_VIEW">
+      <UsersAdminTable role="TEACHER" title="Teachers" />
+    </RequirePermission>
+  );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ReactNode } from "react";
 import LogoutButton from "@/components/LogoutButton";
 import { hasPermission } from "@/lib/api";
+import { usePermissionRefresh } from "@/components/RequirePermission";
 
 const linkPermissions: Record<string, string> = {
   "/admin/students": "USER_VIEW",
@@ -31,6 +32,8 @@ export default function PortalShell({
   links: [string, string][];
   children: ReactNode;
 }) {
+  // Re-filter sidebar links when permissions refresh in the background.
+  usePermissionRefresh();
   const visible = links.filter(([label, href]) => {
     const permission = linkPermissions[href];
     if (!permission) return true;

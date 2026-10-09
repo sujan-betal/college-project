@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import RequirePermission from "@/components/RequirePermission";
 
 export default function AuditLogs() {
   const [rows, setRows] = useState<any[]>([]);
@@ -17,7 +18,7 @@ export default function AuditLogs() {
   const columns = rows.length > 0 ? Object.keys(rows[0]).slice(0, 6) : [];
 
   return (
-    <>
+    <RequirePermission permission="AUDIT_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Audit Logs</h1>
       <p className="mt-1 text-ink/80">Administrative activity across the portal.</p>
       <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
@@ -44,6 +45,6 @@ export default function AuditLogs() {
           </tbody>
         </table>
       </div>
-    </>
+    </RequirePermission>
   );
 }

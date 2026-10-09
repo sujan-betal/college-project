@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import RequirePermission, { usePermissionRefresh } from "@/components/RequirePermission";
 
 export default function AdminCourses() {
   const [rows, setRows] = useState<any[]>([]);
@@ -9,6 +10,8 @@ export default function AdminCourses() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ name: "", code: "", department_id: "", duration_years: "", total_seats: "", annual_fee: "" });
+  usePermissionRefresh();
+  const canManage = hasPermission("COURSE_MANAGE");
 
   function load() {
     setLoading(true);
@@ -46,9 +49,10 @@ export default function AdminCourses() {
   }
 
   return (
-    <>
+    <RequirePermission permission="COURSE_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Courses</h1>
       <p className="mt-1 text-ink/80">Program catalog and seat intake.</p>
+      {canManage && (
       <form onSubmit={handleSubmit} className="mt-6 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-3">
         <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <input required placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
@@ -63,6 +67,7 @@ export default function AdminCourses() {
         <input placeholder="Annual fee" type="number" value={form.annual_fee} onChange={(e) => setForm({ ...form, annual_fee: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <button className="rounded-full bg-maroon px-6 py-2.5 font-semibold text-cream md:col-span-3 w-fit">Create Course</button>
       </form>
+      )}
       {message && <p className="mt-2 text-sm text-ink/70">{message}</p>}
       <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
         <table className="w-full min-w-[640px] text-sm">
@@ -94,6 +99,6 @@ export default function AdminCourses() {
           </tbody>
         </table>
       </div>
-    </>
+    </RequirePermission>
   );
 }

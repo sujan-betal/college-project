@@ -115,16 +115,17 @@ async def set_permissions(db: AsyncSession, userid: str, codes: list, admin: Use
         wanted = {"ALL"}
 
     catalog = {p.code: p for p in (await db.execute(select(Permission))).scalars().all()}
+    id_to_code = {p.id: p.code for p in catalog.values()}
 
     existing = (await db.execute(
         select(UserPermission).where(UserPermission.userid == userid)
     )).scalars().all()
 
     for grant in existing:
-        if grant.permission.code not in wanted:
+        if id_to_code.get(grant.permissionid) not in wanted:
             await db.delete(grant)
 
-    already = {grant.permission.code for grant in existing}
+    already = {id_to_code.get(grant.permissionid) for grant in existing}
 
     for code in wanted - already:
         permission = catalog.get(code)

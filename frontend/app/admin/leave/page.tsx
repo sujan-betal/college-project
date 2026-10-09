@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import RequirePermission, { usePermissionRefresh } from "@/components/RequirePermission";
 
 export default function AdminLeave() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  usePermissionRefresh();
+  const canManage = hasPermission("LEAVE_APPROVE");
 
   function load() {
     setLoading(true);
@@ -23,7 +26,7 @@ export default function AdminLeave() {
   }
 
   return (
-    <>
+    <RequirePermission permission="LEAVE_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Leave Requests</h1>
       <p className="mt-1 text-ink/80">Review and action staff leave applications.</p>
       <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
@@ -35,7 +38,7 @@ export default function AdminLeave() {
               <th className="px-4 py-3 text-left font-semibold">To</th>
               <th className="px-4 py-3 text-left font-semibold">Reason</th>
               <th className="px-4 py-3 text-left font-semibold">Status</th>
-              <th className="px-4 py-3 text-left font-semibold">Actions</th>
+              {canManage && <th className="px-4 py-3 text-left font-semibold">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -50,15 +53,17 @@ export default function AdminLeave() {
                 <td className="px-4 py-3">{r.to_date}</td>
                 <td className="px-4 py-3">{r.reason}</td>
                 <td className="px-4 py-3">{r.status}</td>
+                {canManage && (
                 <td className="px-4 py-3 space-x-2">
                   <button onClick={() => setStatus(r.id, "APPROVED")} className="rounded-full bg-maroon px-4 py-1 text-xs font-semibold text-cream">Approve</button>
                   <button onClick={() => setStatus(r.id, "REJECTED")} className="rounded-full border border-ink/20 px-4 py-1 text-xs font-semibold">Reject</button>
                 </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </>
+    </RequirePermission>
   );
 }

@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, hasPermission } from "@/lib/api";
+import { usePermissionRefresh } from "@/components/RequirePermission";
 
 export default function UsersAdminTable({ role, title }: { role: string; title: string }) {
+  usePermissionRefresh();
   const [users, setUsers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

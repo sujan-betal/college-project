@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import RequirePermission, { usePermissionRefresh } from "@/components/RequirePermission";
 
 export default function AdminFees() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ course_id: "", head: "", amount: "", due_date: "" });
+  usePermissionRefresh();
+  const canManage = hasPermission("FEE_MANAGE");
 
   function load() {
     setLoading(true);
@@ -38,9 +41,10 @@ export default function AdminFees() {
   }
 
   return (
-    <>
+    <RequirePermission permission="FEE_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Fees</h1>
       <p className="mt-1 text-ink/80">Fee structure, collections, and dues tracking.</p>
+      {canManage && (
       <form onSubmit={handleSubmit} className="mt-6 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-4">
         <input required placeholder="Course ID" type="number" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <input required placeholder="Head" value={form.head} onChange={(e) => setForm({ ...form, head: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
@@ -48,6 +52,7 @@ export default function AdminFees() {
         <input placeholder="Due date" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <button className="rounded-full bg-maroon px-6 py-2.5 font-semibold text-cream md:col-span-4 w-fit">Create Fee</button>
       </form>
+      )}
       {message && <p className="mt-2 text-sm text-ink/70">{message}</p>}
       <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
         <table className="w-full min-w-[560px] text-sm">
@@ -75,6 +80,6 @@ export default function AdminFees() {
           </tbody>
         </table>
       </div>
-    </>
+    </RequirePermission>
   );
 }

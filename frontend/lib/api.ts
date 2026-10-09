@@ -34,6 +34,27 @@ export function hasPermission(code: string): boolean {
   return perms.includes("ALL") || perms.includes(code.toUpperCase());
 }
 
+export const PERMS_UPDATED_EVENT = "permissions-updated";
+
+// Re-fetch own permissions from the server so that changes made by an
+// admin (or a role update) apply without forcing the user to log in again.
+export async function refreshPermissions(): Promise<string[]> {
+  try {
+    const res = await apiFetch("/api/auth/me");
+    if (res?.success && res.data && typeof window !== "undefined") {
+      const perms: string[] = res.data.permissions || [];
+      localStorage.setItem(PERMS_KEY, JSON.stringify(perms));
+      if (res.data.role) localStorage.setItem(ROLE_KEY, res.data.role);
+      if (res.data.username) localStorage.setItem(USERNAME_KEY, res.data.username);
+      window.dispatchEvent(new Event(PERMS_UPDATED_EVENT));
+      return perms;
+    }
+  } catch {
+    // Network/parse failure — keep the cached permissions.
+  }
+  return getPermissions();
+}
+
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
