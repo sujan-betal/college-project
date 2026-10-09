@@ -1,5 +1,5 @@
 from src.models.user_model import User
-from src.models.permission_model import Permission, UserPermission, RoleTemplate
+from src.models.permission_model import UserPermission, Role
 from src.models.student_model import Student
 from src.models.teacher_model import Teacher, TeacherSubject
 from src.models.course_model import Department, Course, Subject
@@ -16,9 +16,8 @@ from src.models.site_model import Event, GalleryItem, SiteContent, Certificate, 
 
 __all__ = [
     "User",
-    "Permission",
     "UserPermission",
-    "RoleTemplate",
+    "Role",
     "Student",
     "Teacher",
     "TeacherSubject",

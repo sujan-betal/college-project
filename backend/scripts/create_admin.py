@@ -19,9 +19,8 @@ from sqlalchemy import select
 
 from src.config.database import SessionLocal
 from src.models.user_model import User
-from src.models.permission_model import Permission, UserPermission
+from src.models.permission_model import UserPermission
 from src.utils.password import hash_password
-from src.utils.seed import seed_permissions
 
 
 DEFAULT_USERNAME = "admin"
@@ -31,8 +30,6 @@ DEFAULT_PASSWORD = "Admin@1234"
 
 async def create_admin(username: str, email: str, password: str):
     async with SessionLocal() as db:
-        await seed_permissions(db)
-
         result = await db.execute(
             select(User).where((User.username == username) | (User.email == email))
         )
@@ -60,19 +57,14 @@ async def create_admin(username: str, email: str, password: str):
         await db.flush()
 
         all_permission = (await db.execute(
-            select(Permission).where(Permission.code == "ALL")
+            select(UserPermission).where(
+                UserPermission.userid == user.userid,
+                UserPermission.permission == "ALL",
+            )
         )).scalar_one_or_none()
 
-        if all_permission:
-            existing = (await db.execute(
-                select(UserPermission).where(
-                    UserPermission.userid == user.userid,
-                    UserPermission.permissionid == all_permission.id,
-                )
-            )).scalar_one_or_none()
-
-            if not existing:
-                db.add(UserPermission(permissionid=all_permission.id, userid=user.userid))
+        if not all_permission:
+            db.add(UserPermission(permission="ALL", userid=user.userid))
 
         await db.commit()
 

@@ -9,7 +9,20 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgot, setForgot] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetNotice, setResetNotice] = useState("");
+
+  async function handleForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setResetNotice("");
+    const res = await api.forgotPassword(resetEmail);
+    setResetNotice(
+      res.message || "If that email is registered, a reset link is on its way."
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,6 +36,7 @@ export default function Login() {
       return;
     }
 
+    setNotice("");
     saveSession({
       access_token: res.data.access_token,
       refresh_token: res.data.refresh_token,
@@ -40,6 +54,47 @@ export default function Login() {
     if (role === "ADMIN") router.replace("/admin");
     else if (role === "TEACHER") router.replace("/teacher");
     else router.replace("/student");
+  }
+
+  if (forgot) {
+    return (
+      <section className="grain bg-maroon text-cream">
+        <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-16">
+          <h1 className="font-display text-4xl font-black">Reset your password</h1>
+          <p className="mt-2 text-cream/80">
+            Enter the email your account was created with. We will send you a
+            link to choose a new password.
+          </p>
+          <form
+            onSubmit={handleForgot}
+            className="mt-8 space-y-4 rounded-2xl bg-cream p-6 text-ink shadow-xl"
+          >
+            <input
+              required
+              type="email"
+              value={resetEmail}
+              onChange={(e) => setResetEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-lg border border-ink/15 px-4 py-2.5"
+            />
+            {resetNotice && <p className="text-sm text-emerald-700">{resetNotice}</p>}
+            <button className="w-full rounded-full bg-maroon py-3 font-semibold text-cream">
+              Send reset link
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setForgot(false);
+                setResetNotice("");
+              }}
+              className="w-full text-sm text-ink/60 underline"
+            >
+              Back to sign in
+            </button>
+          </form>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -67,12 +122,25 @@ export default function Login() {
             className="w-full rounded-lg border border-ink/15 px-4 py-2.5"
           />
           {error && <p className="text-sm text-red-600">{error}</p>}
+          {notice && <p className="text-sm text-emerald-700">{notice}</p>}
           <button
             disabled={loading}
             className="w-full rounded-full bg-maroon py-3 font-semibold text-cream hover:bg-maroon-dark transition disabled:opacity-60"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+          <div className="flex items-center justify-between text-xs">
+            <button
+              type="button"
+              onClick={() => setForgot(true)}
+              className="text-ink/60 underline"
+            >
+              Forgot password?
+            </button>
+            <a href="/set-password" className="text-ink/60 underline">
+              I have a setup link
+            </a>
+          </div>
         </form>
       </div>
     </section>

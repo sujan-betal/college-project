@@ -3,10 +3,37 @@ from sqlalchemy import select
 
 from src.models.user_model import User
 from src.models.teacher_model import Teacher, TeacherSubject
+from src.models.course_model import Subject
+from src.models.student_model import Student
+from src.models.academic_model import Exam
 from src.models.content_model import Notice, StudyMaterial, Assignment
 from src.modules.teacher.teacher_schemas import UpdateTeacherProfileSchema, PostNoticeSchema
 from src.utils.common_schema import api_response_success, api_response_error
 from src.utils.status_code import StatusCode
+
+
+async def _check_refs(db, student_id=None, subject_id=None, exam_id=None):
+    """Return an error response if any referenced id does not exist.
+
+    Without this a bad id reaches Postgres and surfaces as a 500 instead of a
+    helpful message.
+    """
+    if student_id is not None:
+        found = (await db.execute(select(Student.id).where(Student.id == student_id))).scalar_one_or_none()
+        if not found:
+            return api_response_error(message=f"Student {student_id} not found", status_code=StatusCode.notFound)
+
+    if subject_id is not None:
+        found = (await db.execute(select(Subject.id).where(Subject.id == subject_id))).scalar_one_or_none()
+        if not found:
+            return api_response_error(message=f"Subject {subject_id} not found", status_code=StatusCode.notFound)
+
+    if exam_id is not None:
+        found = (await db.execute(select(Exam.id).where(Exam.id == exam_id))).scalar_one_or_none()
+        if not found:
+            return api_response_error(message=f"Exam {exam_id} not found", status_code=StatusCode.notFound)
+
+    return None
 
 
 async def get_profile(db: AsyncSession, user: User):
@@ -55,10 +82,21 @@ async def get_subjects(db: AsyncSession, user: User):
     )
     subjects = result.scalars().all()
 
+    # Attach readable names so the UI never has to show raw ids.
+    names = {}
+    if subjects:
+        rows = (await db.execute(
+            select(Subject.id, Subject.name, Subject.code)
+            .where(Subject.id.in_([s.subject_id for s in subjects]))
+        )).all()
+        names = {r[0]: {"name": r[1], "code": r[2]} for r in rows}
+
     return api_response_success(
         data=[
             {
                 "subject_id": s.subject_id,
+                "subject_name": names.get(s.subject_id, {}).get("name"),
+                "subject_code": names.get(s.subject_id, {}).get("code"),
                 "course_id": s.course_id,
                 "section": s.section,
                 "academic_year": s.academic_year,
@@ -66,6 +104,24 @@ async def get_subjects(db: AsyncSession, user: User):
             for s in subjects
         ],
         message="Subjects fetched",
+    )
+
+
+async def list_students(db: AsyncSession, user: User):
+    """Students a teacher can mark, with names to show in a dropdown."""
+    rows = (await db.execute(
+        select(Student.id, Student.roll_no, User.username)
+        .join(User, User.userid == Student.userid)
+        .where(User.is_deleted == False, User.status == "ACTIVE")
+        .order_by(Student.roll_no)
+    )).all()
+
+    return api_response_success(
+        data=[
+            {"student_id": r[0], "roll_no": r[1], "username": r[2]}
+            for r in rows
+        ],
+        message="Students fetched",
     )
 
 
@@ -111,6 +167,15 @@ async def mark_attendance(db, user, payload):
     teacher = await _get_teacher(db, user)
     if not teacher:
         return api_response_error(message="Teacher profile not found", status_code=StatusCode.notFound)
+
+    if not payload.records:
+        return api_response_error(message="No attendance records supplied", status_code=StatusCode.badRequest)
+
+    for r in payload.records:
+        invalid = await _check_refs(db, student_id=r.student_id, subject_id=r.subject_id)
+        if invalid:
+            return invalid
+
     for r in payload.records:
         existing = (await db.execute(
             select(Attendance).where(Attendance.student_id == r.student_id, Attendance.subject_id == r.subject_id, Attendance.date == r.date)
@@ -136,6 +201,9 @@ async def add_marks(db, user, payload):
     teacher = await _get_teacher(db, user)
     if not teacher:
         return api_response_error(message="Teacher profile not found", status_code=StatusCode.notFound)
+    invalid = await _check_refs(db, student_id=payload.student_id, subject_id=payload.subject_id, exam_id=payload.exam_id)
+    if invalid:
+        return invalid
     m = Marks(student_id=payload.student_id, exam_id=payload.exam_id, subject_id=payload.subject_id, teacher_id=teacher.id, marks_obtained=payload.marks_obtained, marks_total=payload.marks_total)
     db.add(m)
     await db.commit()
@@ -154,6 +222,9 @@ async def add_material(db, user, payload):
     teacher = await _get_teacher(db, user)
     if not teacher:
         return api_response_error(message="Teacher profile not found", status_code=StatusCode.notFound)
+    invalid = await _check_refs(db, subject_id=payload.subject_id)
+    if invalid:
+        return invalid
     m = StudyMaterial(title=payload.title, subject_id=payload.subject_id, teacher_id=teacher.id, file_url=payload.file_url, file_type=payload.file_type, file_size=payload.file_size or 0)
     db.add(m)
     await db.commit()
@@ -172,6 +243,9 @@ async def add_assignment(db, user, payload):
     teacher = await _get_teacher(db, user)
     if not teacher:
         return api_response_error(message="Teacher profile not found", status_code=StatusCode.notFound)
+    invalid = await _check_refs(db, subject_id=payload.subject_id)
+    if invalid:
+        return invalid
     a = Assignment(title=payload.title, description=payload.description, subject_id=payload.subject_id, teacher_id=teacher.id, section=payload.section, due_date=payload.due_date)
     db.add(a)
     await db.commit()

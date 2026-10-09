@@ -91,6 +91,11 @@ class LeaveApplySchema(BaseModel):
     reason: Optional[str] = None
 
 
+@router.get("/students")
+async def students(db: AsyncSession = Depends(get_db), user=Depends(teacher_only)):
+    return await teacher_services.list_students(db, user)
+
+
 @router.get("/attendance")
 async def attendance_list(db: AsyncSession = Depends(get_db), user=Depends(teacher_only)):
     return await teacher_services.get_attendance(db, user)

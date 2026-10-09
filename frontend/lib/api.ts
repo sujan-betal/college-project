@@ -139,6 +139,14 @@ export const api = {
   changePassword: (current_password: string, new_password: string, confirm_password: string) =>
     apiFetch("/api/auth/password/change", { method: "PUT", body: { current_password, new_password, confirm_password } }),
   logout: () => apiFetch("/api/auth/logout", { method: "POST" }),
+  setPassword: (token: string, new_password: string, confirm_password: string) =>
+    apiFetch("/api/auth/set-password", {
+      method: "POST",
+      body: { token, new_password, confirm_password },
+      auth: false,
+    }),
+  forgotPassword: (email: string) =>
+    apiFetch("/api/auth/forgot-password", { method: "POST", body: { email }, auth: false }),
 
   adminUsers: (params: { page?: number; page_size?: number; search?: string; role?: string }) => {
     const q = new URLSearchParams();
@@ -153,9 +161,14 @@ export const api = {
     designation?: string;
     department_id?: number;
     permissions?: string[];
-    role_template?: string;
   }) => apiFetch("/api/admin/users", { method: "POST", body: payload }),
-  adminPermissions: () => apiFetch("/api/admin/permissions"),
+  adminPermissions: () => apiFetch("/api/admin/permission-names"),
+  adminRoles: () => apiFetch("/api/admin/roles"),
+  adminCreateRole: (payload: { name: string; description?: string; is_admin?: boolean }) =>
+    apiFetch("/api/admin/roles", { method: "POST", body: payload }),
+  adminUpdateRole: (id: number, payload: { description?: string; is_admin?: boolean }) =>
+    apiFetch(`/api/admin/roles/${id}`, { method: "PUT", body: payload }),
+  adminDeleteRole: (id: number) => apiFetch(`/api/admin/roles/${id}`, { method: "DELETE" }),
   adminUserPermissions: (userid: string) => apiFetch(`/api/admin/users/${userid}/permissions`),
   adminSetUserPermissions: (userid: string, permissions: string[]) =>
     apiFetch(`/api/admin/users/${userid}/permissions`, { method: "PUT", body: { permissions } }),
@@ -184,7 +197,8 @@ export const api = {
   studentAssignments: () => apiFetch("/api/student/assignments"),
   studentCertificates: () => apiFetch("/api/student/certificates"),
 
-  teacherAttendance: () => apiFetch("/api/teacher/attendance"),
+  teacherStudents: () => apiFetch("/api/teacher/students"),
+teacherAttendance: () => apiFetch("/api/teacher/attendance"),
   teacherMarkAttendance: (records: { student_id: number; subject_id: number; date: string; status: string }[]) =>
     apiFetch("/api/teacher/attendance", { method: "POST", body: { records } }),
   teacherMarks: () => apiFetch("/api/teacher/marks"),

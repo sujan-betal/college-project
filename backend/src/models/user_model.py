@@ -65,6 +65,13 @@ class User(Base):
         nullable=False
     )
 
+    # Random value baked into the most recent password-setup token. Clearing
+    # it after use makes each emailed link strictly single-use.
+    reset_nonce = Column(
+        String(64),
+        nullable=True
+    )
+
     userid = Column(
         String(36),
         default=lambda: str(uuid.uuid4()),

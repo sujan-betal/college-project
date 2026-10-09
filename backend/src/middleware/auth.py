@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from jose import jwt, JWTError
 from dotenv import load_dotenv
 import os
@@ -9,7 +9,7 @@ import logging
 
 from src.config.database import get_db
 from src.models.user_model import User
-from src.models.permission_model import Permission, UserPermission
+from src.models.permission_model import UserPermission, Role
 
 load_dotenv()
 
@@ -21,7 +21,7 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 security = HTTPBearer()
 
 
-def authorization(allowed_roles: list = None, required_permissions: list = None):
+def authorization(allowed_roles: list = None, required_permissions: list = None, require_admin_role: bool = False):
     allowed_roles = allowed_roles or []
     required_permissions = [p.upper() for p in (required_permissions or [])]
 
@@ -73,19 +73,13 @@ def authorization(allowed_roles: list = None, required_permissions: list = None)
                 )
 
             # --------------------------------------------------
-            # 5. Check Allowed Roles
+            # 5. Check Allowed Roles (validated against DB below)
             # --------------------------------------------------
 
             if allowed_roles and role not in [r.upper() for r in allowed_roles]:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access denied: invalid role"
-                )
-
-            if role not in ("STUDENT", "TEACHER", "ADMIN"):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid role"
                 )
 
             # --------------------------------------------------
@@ -132,27 +126,45 @@ def authorization(allowed_roles: list = None, required_permissions: list = None)
                 )
 
             # --------------------------------------------------
-            # 10. Load granted permissions
+            # 10. Validate the role exists and check admin access
+            # --------------------------------------------------
+
+            role_row = (await db.execute(
+                select(Role).where(func.upper(Role.name) == role)
+            )).scalar_one_or_none()
+
+            if not role_row:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid role"
+                )
+
+            if require_admin_role and not role_row.is_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: role cannot access admin"
+                )
+
+            # --------------------------------------------------
+            # 11. Load granted permissions
             # --------------------------------------------------
 
             permissions = {
                 (code or "").upper()
                 for code in (await db.execute(
-                    select(Permission.code)
-                    .join(UserPermission, UserPermission.permissionid == Permission.id)
-                    .where(UserPermission.userid == existing_user.userid)
+                    select(UserPermission.permission).where(UserPermission.userid == existing_user.userid)
                 )).scalars().all()
             }
 
             # --------------------------------------------------
-            # 11. "ALL" grants everything
+            # 12. "ALL" grants everything
             # --------------------------------------------------
 
             if "ALL" in permissions:
                 return existing_user
 
             # --------------------------------------------------
-            # 12. Check required permissions
+            # 13. Check required permissions
             # --------------------------------------------------
 
             if required_permissions:
@@ -165,7 +177,7 @@ def authorization(allowed_roles: list = None, required_permissions: list = None)
                     )
 
             # --------------------------------------------------
-            # 13. Authorized
+            # 14. Authorized
             # --------------------------------------------------
 
             return existing_user

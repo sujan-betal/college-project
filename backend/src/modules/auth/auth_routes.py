@@ -8,6 +8,8 @@ from src.modules.auth.auth_schemas import (
     ChangePasswordSchema,
     RefreshTokenSchema,
     ResetPasswordSchema,
+    SetPasswordSchema,
+    ForgotPasswordSchema,
 )
 from src.modules.auth import auth_services
 
@@ -39,6 +41,16 @@ async def password_change(
 @router.post("/refresh")
 async def refresh_token(payload: RefreshTokenSchema, db: AsyncSession = Depends(get_db)):
     return await auth_services.refresh(db, payload.refresh_token)
+
+
+@router.post("/set-password")
+async def set_password(payload: SetPasswordSchema, db: AsyncSession = Depends(get_db)):
+    return await auth_services.set_password_with_token(db, payload)
+
+
+@router.post("/forgot-password")
+async def forgot_password(payload: ForgotPasswordSchema, db: AsyncSession = Depends(get_db)):
+    return await auth_services.forgot_password(db, payload)
 
 
 @router.post("/reset")

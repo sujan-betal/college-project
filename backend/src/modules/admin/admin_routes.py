@@ -8,6 +8,17 @@ from src.modules.admin.admin_schemas import (
     CreateUserSchema,
     UpdateUserStatusSchema,
     SetPermissionsSchema,
+    RoleCreateSchema,
+    RoleUpdateSchema,
+SubjectCreateSchema,
+    TeacherSubjectCreateSchema,
+    NoticeCreateSchema,
+    EventCreateSchema,
+    GalleryCreateSchema,
+    SiteContentSchema,
+    CertificateCreateSchema,
+    FeePaymentCreateSchema,
+    StudentEnrollmentSchema,
     DepartmentCreateSchema,
     CourseCreateSchema,
     FeeStructureCreateSchema,
@@ -20,21 +31,181 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 def scoped(*permissions: str):
-    """ADMIN-only endpoint that also requires the given permissions."""
+    """Admin-module endpoint: needs an admin-capable role + these permissions."""
     return authorization(
-        allowed_roles=["ADMIN"],
         required_permissions=list(permissions),
+        require_admin_role=True,
     )
+
+
+# Any admin-capable role, no extra permission needed.
+admin_only = authorization(require_admin_role=True)
+
+
+# --------------------------------------------------
+# Roles (dynamic, admin managed)
+# --------------------------------------------------
+
+@router.get("/roles")
+async def get_roles(db: AsyncSession = Depends(get_db), user=Depends(admin_only)):
+    return await admin_services.list_roles(db)
+
+
+@router.post("/roles")
+async def post_role(
+    payload: RoleCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.create_role(db, payload, user)
+
+
+@router.put("/roles/{role_id}")
+async def put_role(
+    role_id: int,
+    payload: RoleUpdateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.update_role(db, role_id, payload, user)
+
+
+@router.delete("/roles/{role_id}")
+async def remove_role(
+    role_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.delete_role(db, role_id, user)
+
+
+@router.get("/permission-names")
+async def get_permission_names(db: AsyncSession = Depends(get_db), user=Depends(admin_only)):
+    return await admin_services.list_permission_names(db)
+
+
+# --------------------------------------------------
+# Academic setup
+# --------------------------------------------------
+
+@router.get("/subjects")
+async def get_subjects(db: AsyncSession = Depends(get_db), user=Depends(scoped("COURSE_VIEW"))):
+    return await admin_services.list_subjects(db)
+
+
+@router.post("/subjects")
+async def post_subject(
+    payload: SubjectCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(scoped("COURSE_MANAGE")),
+):
+    return await admin_services.create_subject(db, payload)
+
+
+@router.get("/teacher-subjects")
+async def get_teacher_subjects(db: AsyncSession = Depends(get_db), user=Depends(scoped("COURSE_VIEW"))):
+    return await admin_services.list_teacher_subjects(db)
+
+
+@router.post("/teacher-subjects")
+async def post_teacher_subject(
+    payload: TeacherSubjectCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(scoped("COURSE_MANAGE")),
+):
+    return await admin_services.assign_teacher_subject(db, payload)
+
+
+# --------------------------------------------------
+# Notices / events / gallery / site content
+# --------------------------------------------------
+
+@router.post("/notices")
+async def post_notice(
+    payload: NoticeCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(scoped("NOTICE_MANAGE")),
+):
+    return await admin_services.create_notice(db, payload, user)
+
+
+@router.get("/events")
+async def get_events(db: AsyncSession = Depends(get_db), user=Depends(admin_only)):
+    return await admin_services.list_public_events(db)
+
+
+@router.post("/events")
+async def post_event(
+    payload: EventCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.create_event(db, payload)
+
+
+@router.get("/gallery")
+async def get_gallery(db: AsyncSession = Depends(get_db), user=Depends(admin_only)):
+    return await admin_services.list_public_gallery(db)
+
+
+@router.post("/gallery")
+async def post_gallery(
+    payload: GalleryCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.create_gallery_item(db, payload)
+
+
+@router.post("/site-content")
+async def post_site_content(
+    payload: SiteContentSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.set_site_content(db, payload)
+
+
+# --------------------------------------------------
+# Certificates, fee payments, messages
+# --------------------------------------------------
+
+@router.get("/certificates")
+async def get_certificates(db: AsyncSession = Depends(get_db), user=Depends(admin_only)):
+    return await admin_services.list_public_certificates(db)
+
+
+@router.post("/certificates")
+async def post_certificate(
+    payload: CertificateCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(admin_only),
+):
+    return await admin_services.create_certificate(db, payload)
+
+
+@router.get("/fee-payments")
+async def get_fee_payments(db: AsyncSession = Depends(get_db), user=Depends(scoped("FEE_VIEW"))):
+    return await admin_services.list_fee_payments(db)
+
+
+@router.post("/fee-payments")
+async def post_fee_payment(
+    payload: FeePaymentCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(scoped("FEE_MANAGE")),
+):
+    return await admin_services.record_fee_payment(db, payload)
+
+
+@router.get("/messages")
+async def get_messages(db: AsyncSession = Depends(get_db), user=Depends(admin_only)):
+    return await admin_services.list_messages(db)
 
 
 # --------------------------------------------------
 # Permissions
 # --------------------------------------------------
-
-@router.get("/permissions")
-async def get_permissions(db: AsyncSession = Depends(get_db), user=Depends(scoped("USER_VIEW"))):
-    return await admin_services.list_permissions(db)
-
 
 @router.get("/users/{userid}/permissions")
 async def get_permissions_of_user(
@@ -102,6 +273,16 @@ async def delete_user(
     user=Depends(scoped("USER_DELETE")),
 ):
     return await admin_services.delete_user(db, userid, user)
+
+
+@router.put("/students/{userid}")
+async def put_student(
+    userid: str,
+    payload: StudentEnrollmentSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(scoped("USER_UPDATE")),
+):
+    return await admin_services.update_student_enrollment(db, userid, payload)
 
 
 @router.get("/stats")

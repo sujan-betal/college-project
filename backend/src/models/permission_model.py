@@ -3,56 +3,22 @@ from sqlalchemy import (
     Integer,
     String,
     DateTime,
-    ForeignKey,
-    text
+    Boolean,
+    ForeignKey
 )
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-import uuid
 
 from src.config.base import Base
 
 
-class Permission(Base):
-
-    __tablename__ = "permissions"
-
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True
-    )
-
-    code = Column(
-        String(100),
-        unique=True,
-        nullable=False
-    )
-
-    module = Column(
-        String(50),
-        nullable=False
-    )
-
-    action = Column(
-        String(50),
-        nullable=False
-    )
-
-    description = Column(
-        String(255),
-        nullable=True
-    )
-
-    created_at = Column(
-        DateTime,
-        server_default=func.now()
-    )
-
-    grants = relationship("UserPermission", back_populates="permission", cascade="all, delete-orphan")
-
-
 class UserPermission(Base):
+    """
+    A permission granted to one user.
+
+    `permission` is just a name typed by an administrator — there is no
+    permissions table and no fixed catalog. The word ALL means everything.
+    """
 
     __tablename__ = "user_permissions"
 
@@ -62,15 +28,15 @@ class UserPermission(Base):
         index=True
     )
 
-    permissionid = Column(
-        Integer,
-        ForeignKey("permissions.id"),
-        nullable=False
-    )
-
     userid = Column(
         String(36),
         ForeignKey("users.userid"),
+        nullable=False,
+        index=True
+    )
+
+    permission = Column(
+        String(100),
         nullable=False
     )
 
@@ -84,13 +50,19 @@ class UserPermission(Base):
         server_default=func.now()
     )
 
-    permission = relationship("Permission", back_populates="grants")
     user = relationship("User", back_populates="permissions")
 
 
-class RoleTemplate(Base):
+class Role(Base):
+    """
+    A dynamically managed role.
 
-    __tablename__ = "role_templates"
+    Roles are created and edited by administrators at runtime, so they live in
+    the database. `is_admin` marks a role as allowed into the admin module;
+    `is_system` marks the built-in roles that cannot be deleted.
+    """
+
+    __tablename__ = "roles"
 
     id = Column(
         Integer,
@@ -109,11 +81,17 @@ class RoleTemplate(Base):
         nullable=True
     )
 
-    templateid = Column(
-        String(36),
-        default=lambda: str(uuid.uuid4()),
-        server_default=text("gen_random_uuid()"),
-        unique=True,
+    is_admin = Column(
+        Boolean,
+        default=False,
+        server_default="0",
+        nullable=False
+    )
+
+    is_system = Column(
+        Boolean,
+        default=False,
+        server_default="0",
         nullable=False
     )
 

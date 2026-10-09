@@ -6,11 +6,40 @@ import { api, getUsername } from "@/lib/api";
 export default function TeacherOverview() {
   const [profile, setProfile] = useState<any>(null);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ designation: "", department_id: "" });
+  const [message, setMessage] = useState("");
+
+  function applyProfile(res: any) {
+    if (res?.success && res.data) {
+      setProfile(res.data);
+      setForm({
+        designation: res.data.designation || "",
+        department_id: res.data.department_id ?? "",
+      });
+    }
+  }
 
   useEffect(() => {
-    api.teacherProfile().then((res) => res.success && setProfile(res.data));
+    api.teacherProfile().then(applyProfile);
     api.teacherSubjects().then((res) => res.success && setSubjects(res.data || []));
   }, []);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage("");
+    const res = await api.teacherUpdateProfile({
+      designation: form.designation || undefined,
+      department_id: form.department_id ? Number(form.department_id) : undefined,
+    });
+    if (res.success) {
+      setMessage(res.message || "Profile updated");
+      setEditing(false);
+      api.teacherProfile().then(applyProfile);
+    } else {
+      setMessage(res.message || "Failed to update profile");
+    }
+  }
 
   return (
     <>
@@ -42,6 +71,40 @@ export default function TeacherOverview() {
           </li>
         ))}
       </ul>
+
+      <button
+        onClick={() => setEditing((v) => !v)}
+        className="mt-8 rounded-full border border-ink/15 px-4 py-2 text-sm"
+      >
+        {editing ? "Close" : "Edit my details"}
+      </button>
+
+      {message && <p className="mt-3 text-sm text-ink/70">{message}</p>}
+
+      {editing && (
+        <form onSubmit={save} className="mt-3 flex flex-wrap items-end gap-3 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
+          <label className="text-xs text-ink/60">
+            Designation
+            <input
+              value={form.designation}
+              onChange={(e) => setForm({ ...form, designation: e.target.value })}
+              className="mt-1 block w-48 rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs text-ink/60">
+            Department ID
+            <input
+              type="number"
+              value={form.department_id}
+              onChange={(e) => setForm({ ...form, department_id: e.target.value })}
+              className="mt-1 block w-32 rounded-lg border border-ink/15 px-3 py-2 text-sm"
+            />
+          </label>
+          <button className="rounded-full bg-maroon px-4 py-2 text-sm font-semibold text-cream">
+            Save
+          </button>
+        </form>
+      )}
     </>
   );
 }

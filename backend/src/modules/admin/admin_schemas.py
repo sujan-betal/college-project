@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 from datetime import date as date_type
 from pydantic import BaseModel, Field, EmailStr
 
@@ -10,12 +10,85 @@ class CreateUserSchema(BaseModel):
     status: str = Field(default="ACTIVE")
     designation: Optional[str] = None
     department_id: Optional[int] = None
-    permissions: Optional[list[str]] = None
-    role_template: Optional[str] = None
+    # Permission names, e.g. ["USER_VIEW"] or "USER_VIEW, FEE_VIEW".
+    permissions: Optional[Any] = None
+
+
+class RoleCreateSchema(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    description: Optional[str] = None
+    is_admin: bool = False
+
+
+class RoleUpdateSchema(BaseModel):
+    description: Optional[str] = None
+    is_admin: Optional[bool] = None
+
+
+class SubjectCreateSchema(BaseModel):
+    course_id: int
+    name: str = Field(..., min_length=1)
+    code: str = Field(..., min_length=1)
+    credits: int = 4
+    semester: int = 1
+
+
+class TeacherSubjectCreateSchema(BaseModel):
+    teacher_id: int
+    subject_id: int
+    section: str = Field(..., min_length=1)
+    academic_year: Optional[str] = None
+
+
+class NoticeCreateSchema(BaseModel):
+    title: str = Field(..., min_length=1)
+    body: str = Field(..., min_length=1)
+    audience: str = "ALL"
+    is_published: int = 1
+
+
+class EventCreateSchema(BaseModel):
+    title: str = Field(..., min_length=1)
+    description: Optional[str] = None
+    event_date: Optional[date_type] = None
+    venue: Optional[str] = None
+
+
+class GalleryCreateSchema(BaseModel):
+    title: str = Field(..., min_length=1)
+    album: Optional[str] = None
+    image_url: Optional[str] = None
+
+
+class SiteContentSchema(BaseModel):
+    key: str = Field(..., min_length=1)
+    value: Optional[str] = None
+
+
+class CertificateCreateSchema(BaseModel):
+    student_id: int
+    title: str = Field(..., min_length=1)
+    certificate_no: Optional[str] = None
+    issued_on: Optional[date_type] = None
+
+
+class FeePaymentCreateSchema(BaseModel):
+    student_id: int
+    amount: float
+    receipt_no: str = Field(..., min_length=1)
+    payment_mode: str = "CASH"
+
+
+class StudentEnrollmentSchema(BaseModel):
+    course_id: Optional[int] = None
+    semester: Optional[int] = None
+    section: Optional[str] = None
+    department_id: Optional[int] = None
 
 
 class SetPermissionsSchema(BaseModel):
-    permissions: list[str] = Field(default_factory=list)
+    # Permission names as a list or a comma separated string.
+    permissions: Any = None
 
 
 class UpdateUserStatusSchema(BaseModel):

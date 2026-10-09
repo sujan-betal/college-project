@@ -4,6 +4,7 @@ import RequireAuth from "@/components/RequireAuth";
 const links: [string, string][] = [
   ["Dashboard", "/admin"],
   ["Admins", "/admin/subadmins"],
+  ["Roles", "/admin/roles"],
   ["Students", "/admin/students"],
   ["Teachers", "/admin/teachers"],
   ["Courses", "/admin/courses"],

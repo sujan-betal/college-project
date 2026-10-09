@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, hasPermission } from "@/lib/api";
+import PermissionInput from "@/components/PermissionInput";
 import { usePermissionRefresh } from "@/components/RequirePermission";
 
 export default function UsersAdminTable({ role, title }: { role: string; title: string }) {
@@ -14,15 +15,14 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
   const [email, setEmail] = useState("");
   const [designation, setDesignation] = useState("");
   const [message, setMessage] = useState("");
+  const [createdLink, setCreatedLink] = useState("");
   const [loading, setLoading] = useState(false);
   const pageSize = 10;
 
-  const [catalog, setCatalog] = useState<{ permissions: any[]; role_templates: any[] }>({
-    permissions: [],
-    role_templates: [],
-  });
-  const [template, setTemplate] = useState("");
+  const [permNames, setPermNames] = useState<string[]>([]);
+  const [roles, setRoles] = useState<{ id: number; name: string; is_admin: boolean }[]>([]);
   const [createPerms, setCreatePerms] = useState<string[]>([]);
+  const [newRole, setNewRole] = useState(role);
 
   const [editing, setEditing] = useState<any>(null);
   const [editPerms, setEditPerms] = useState<string[]>([]);
@@ -48,33 +48,13 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
   }, [load]);
 
   useEffect(() => {
-    if (!canGrant) return;
     api.adminPermissions().then((res) => {
-      if (res.success) setCatalog(res.data);
+      if (res.success) setPermNames(res.data || []);
     });
-  }, [canGrant]);
-
-  function applyTemplate(name: string) {
-    setTemplate(name);
-    const t = catalog.role_templates.find((x) => x.name === name);
-    setCreatePerms(t ? t.permissions : []);
-  }
-
-  function toggleAll(list: string[], setList: (v: string[]) => void) {
-    setList(list.includes("ALL") ? [] : ["ALL"]);
-  }
-
-  function toggle(list: string[], setList: (v: string[]) => void, code: string) {
-    if (code === "ALL") {
-      toggleAll(list, setList);
-      return;
-    }
-    const withoutAll = list.filter((c) => c !== "ALL");
-    setList(withoutAll.includes(code) ? withoutAll.filter((c) => c !== code) : [...withoutAll, code]);
-  }
-
-  const createHasAll = createPerms.includes("ALL");
-  const editHasAll = editPerms.includes("ALL");
+    api.adminRoles().then((res) => {
+      if (res.success) setRoles(res.data || []);
+    });
+  }, []);
 
   async function createUser(e: React.FormEvent) {
     e.preventDefault();
@@ -82,17 +62,16 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
     const res = await api.adminCreateUser({
       username,
       email: email || undefined,
-      role,
-      designation: role === "TEACHER" && designation ? designation : undefined,
-      role_template: canGrant && template ? template : undefined,
+      role: newRole,
+      designation: newRole === "TEACHER" && designation ? designation : undefined,
       permissions: canGrant ? createPerms : undefined,
     });
     if (res.success) {
       setMessage(res.message);
+      setCreatedLink((res.data as any)?.set_password_url || "");
       setUsername("");
       setEmail("");
       setDesignation("");
-      setTemplate("");
       setCreatePerms([]);
       load();
     } else {
@@ -130,6 +109,7 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
     if (res.success) {
       setMessage(`Permissions updated for ${editing.username}`);
       setEditing(null);
+      load();
     } else {
       setMessage(res.message || "Failed to update permissions");
     }
@@ -146,11 +126,10 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
           {role === "TEACHER" && (
             <input placeholder="Designation" value={designation} onChange={(e) => setDesignation(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm" />
           )}
-          {canGrant && (
-            <select value={template} onChange={(e) => applyTemplate(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
-              <option value="">No template</option>
-              {catalog.role_templates.map((t) => (
-                <option key={t.id} value={t.name}>{t.name}</option>
+          {roles.length > 0 && (
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value)} className="rounded-lg border border-ink/15 px-3 py-2 text-sm">
+              {roles.map((r) => (
+                <option key={r.id} value={r.name}>{r.name}</option>
               ))}
             </select>
           )}
@@ -161,46 +140,27 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
 
       {canGrant && (
         <div className="mt-3 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold tracking-widest text-ink/50">ACCESS ON CREATION</p>
-            <button
-              type="button"
-              onClick={() => toggleAll(createPerms, setCreatePerms)}
-              className={`rounded-full border px-4 py-1 text-xs font-semibold ${createHasAll ? "border-maroon bg-maroon text-cream" : "border-ink/15"}`}
-            >
-              {createHasAll ? "Full access ON" : "Give full access (ALL)"}
-            </button>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {catalog.permissions.length === 0 ? (
-              <p className="text-sm text-ink/50">No permissions available.</p>
-            ) : (
-              catalog.permissions.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => toggle(createPerms, setCreatePerms, p.code)}
-                  title={p.description || p.code}
-                  className={`rounded-full border px-3 py-1 text-xs ${
-                    createPerms.includes(p.code)
-                      ? "border-maroon bg-maroon text-cream"
-                      : "border-ink/15"
-                  } ${createHasAll && p.code !== "ALL" ? "opacity-40" : ""}`}
-                >
-                  {p.code}
-                </button>
-              ))
-            )}
-          </div>
-          {createHasAll && (
-            <p className="mt-2 text-xs text-ink/50">
-              Full access selected. Turn it off to pick individual permissions.
+          <PermissionInput
+            value={createPerms}
+            onChange={setCreatePerms}
+            suggestions={permNames}
+            label="Access on creation"
+          />
+        </div>
+      )}
+
+      {message && (
+        <div className="mt-3 rounded-lg border border-ink/10 bg-saffron-soft p-3 text-sm text-ink/80">
+          <p>{message}</p>
+          {createdLink && (
+            <p className="mt-2 text-xs">
+              If the email did not arrive, send this link to the new user:
+              <br />
+              <span className="break-all">{createdLink}</span>
             </p>
           )}
         </div>
       )}
-
-      {message && <p className="mt-3 text-sm text-ink/70">{message}</p>}
 
       <div className="mt-4 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
         <table className="w-full min-w-[560px] text-sm">
@@ -210,20 +170,41 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
               <th className="px-4 py-3 text-left">Email</th>
               <th className="px-4 py-3 text-left">Role</th>
               <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Permissions</th>
               <th className="px-4 py-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-4 py-3">Loading...</td></tr>
+              <tr><td colSpan={6} className="px-4 py-3">Loading...</td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-3">No users found.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-3">No users found.</td></tr>
             ) : users.map((u, i) => (
               <tr key={u.userid} className={i % 2 ? "bg-cream/60" : ""}>
                 <td className="px-4 py-3">{u.username}</td>
                 <td className="px-4 py-3">{u.email || "-"}</td>
                 <td className="px-4 py-3">{u.role}</td>
                 <td className="px-4 py-3">{u.status}</td>
+                <td className="px-4 py-3">
+                  {u.permissions?.length ? (
+                    <div className="flex max-w-xs flex-wrap gap-1">
+                      {u.permissions.map((p: string) => (
+                        <span
+                          key={p}
+                          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                            p === "ALL"
+                              ? "border-maroon bg-maroon text-cream"
+                              : "border-ink/15 text-ink/70"
+                          }`}
+                        >
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-ink/40">None</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 space-x-2">
                   {canGrant && (
                     <button onClick={() => openPermissions(u)} className="rounded-full border border-ink/15 px-3 py-1 text-xs">
@@ -253,32 +234,16 @@ export default function UsersAdminTable({ role, title }: { role: string; title: 
         <div className="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="font-display text-xl font-bold text-maroon">Access for {editing.username}</h2>
-            <p className="mt-1 text-xs text-ink/50">Give full access, or tick only what this {title.slice(0, -1).toLowerCase()} should manage.</p>
-            <button
-              type="button"
-              onClick={() => toggleAll(editPerms, setEditPerms)}
-              className={`mt-3 w-full rounded-full border px-4 py-2 text-sm font-semibold ${editHasAll ? "border-maroon bg-maroon text-cream" : "border-ink/15"}`}
-            >
-              {editHasAll ? "Full access ON" : "Give full access (ALL)"}
-            </button>
-            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
-              {catalog.permissions.map((p) => (
-                <label
-                  key={p.id}
-                  className={`flex items-start gap-2 rounded-lg border border-ink/10 p-2 ${editHasAll && p.code !== "ALL" ? "opacity-40" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={editPerms.includes(p.code)}
-                    onChange={() => toggle(editPerms, setEditPerms, p.code)}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="text-sm font-semibold">{p.code}</span>
-                    <span className="block text-xs text-ink/50">{p.description}</span>
-                  </span>
-                </label>
-              ))}
+            <p className="mt-1 text-xs text-ink/50">
+              Type the permission names this {title.slice(0, -1).toLowerCase()} should manage.
+            </p>
+            <div className="mt-3">
+              <PermissionInput
+                value={editPerms}
+                onChange={setEditPerms}
+                suggestions={permNames}
+                label="Permissions"
+              />
             </div>
             <div className="mt-4 flex justify-end gap-3">
               <button onClick={() => setEditing(null)} className="rounded-full border border-ink/15 px-4 py-2 text-sm">Cancel</button>

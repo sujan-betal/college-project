@@ -10,6 +10,7 @@ export default function AdminCourses() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ name: "", code: "", department_id: "", duration_years: "", total_seats: "", annual_fee: "" });
+const [dept, setDept] = useState({ name: "", code: "", description: "" });
   usePermissionRefresh();
   const canManage = hasPermission("COURSE_MANAGE");
 
@@ -20,6 +21,8 @@ export default function AdminCourses() {
       setLoading(false);
     });
   }
+
+  const deptName = (id: number) => departments.find((d) => d.id === id)?.name || `Department #${id}`;
 
   useEffect(() => {
     load();
@@ -48,18 +51,50 @@ export default function AdminCourses() {
     }
   }
 
+  async function handleDeptSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage("");
+    const res = await api.adminCreateDepartment({
+      name: dept.name,
+      code: dept.code,
+      description: dept.description || undefined,
+    });
+    if (res.success) {
+      setMessage("Department created.");
+      setDept({ name: "", code: "", description: "" });
+      const dres = await api.adminDepartments();
+      if (dres.success) setDepartments(dres.data || []);
+    } else {
+      setMessage(res.message || "Failed to create department");
+    }
+  }
+
   return (
     <RequirePermission permission="COURSE_VIEW">
       <h1 className="font-display text-3xl font-black text-maroon">Courses</h1>
       <p className="mt-1 text-ink/80">Program catalog and seat intake.</p>
+
       {canManage && (
-      <form onSubmit={handleSubmit} className="mt-6 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-3">
+      <form onSubmit={handleDeptSubmit} className="mt-6 flex flex-wrap items-end gap-3 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
+        <p className="w-full text-xs font-semibold tracking-widest text-ink/50">NEW DEPARTMENT</p>
+        <input required placeholder="Department name" value={dept.name} onChange={(e) => setDept({ ...dept, name: e.target.value })} className="rounded-lg border border-ink/15 px-3 py-2 text-sm" />
+        <input required placeholder="Code" value={dept.code} onChange={(e) => setDept({ ...dept, code: e.target.value })} className="rounded-lg border border-ink/15 px-3 py-2 text-sm" />
+        <input placeholder="Description" value={dept.description} onChange={(e) => setDept({ ...dept, description: e.target.value })} className="rounded-lg border border-ink/15 px-3 py-2 text-sm" />
+        <button className="rounded-full bg-maroon px-4 py-2 text-sm font-semibold text-cream">Add Department</button>
+      </form>
+      )}
+
+      {canManage && (
+      <p className="mt-6 text-xs font-semibold tracking-widest text-ink/50">NEW COURSE</p>
+      )}
+      {canManage && (
+      <form onSubmit={handleSubmit} className="mt-2 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-3">
         <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <input required placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
         <select required value={form.department_id} onChange={(e) => setForm({ ...form, department_id: e.target.value })} className="rounded-lg border border-ink/15 px-3 py-2.5">
-          <option value="">Department...</option>
+          <option value="">Choose department...</option>
           {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.id} — {d.name}</option>
+            <option key={d.id} value={d.id}>{d.name}</option>
           ))}
         </select>
         <input placeholder="Duration (years)" type="number" value={form.duration_years} onChange={(e) => setForm({ ...form, duration_years: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
@@ -90,7 +125,7 @@ export default function AdminCourses() {
               <tr key={r.id ?? i} className={i % 2 ? "bg-cream/60" : ""}>
                 <td className="px-4 py-3">{r.name}</td>
                 <td className="px-4 py-3">{r.code}</td>
-                <td className="px-4 py-3">{r.department_id}</td>
+                <td className="px-4 py-3">{deptName(r.department_id)}</td>
                 <td className="px-4 py-3">{r.duration_years}</td>
                 <td className="px-4 py-3">{r.total_seats}</td>
                 <td className="px-4 py-3">{r.annual_fee}</td>

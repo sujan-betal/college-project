@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from src.config.database import college_engine, SessionLocal
 from src.config.base import Base
-from src.utils.seed import seed_permissions, seed_role_templates
+from src.utils.seed import seed_roles
 import src.models
 from src.modules.auth.auth_routes import router as auth_router
 from src.modules.admin.admin_routes import router as admin_router
@@ -35,8 +35,7 @@ async def startup():
     async with college_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     async with SessionLocal() as session:
-        await seed_permissions(session)
-        await seed_role_templates(session)
+        await seed_roles(session)
 
 
 app.include_router(auth_router)
