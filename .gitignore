@@ -1,23 +1,46 @@
 # Environment
 .env
+.env.*
+!.env.example
 backend/.env
+frontend/.env*
 
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 venv/
 .venv/
+alembic/versions/*.pyc
 
 # Node
 node_modules/
 .next/
-npm-debug.log
+out/
+build/
+coverage/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+*.pem
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-# Logs
-*.log

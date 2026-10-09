@@ -1,5 +1,24 @@
+"use client";
+
 import Link from "next/link";
 import { ReactNode } from "react";
+import LogoutButton from "@/components/LogoutButton";
+import { hasPermission } from "@/lib/api";
+
+const linkPermissions: Record<string, string> = {
+  "/admin/students": "USER_VIEW",
+  "/admin/teachers": "USER_VIEW",
+  "/admin/subadmins": "USER_VIEW",
+  "/admin/courses": "COURSE_VIEW",
+  "/admin/admissions": "ADMISSION_VIEW",
+  "/admin/fees": "FEE_VIEW",
+  "/admin/exams": "EXAM_VIEW",
+  "/admin/notices": "NOTICE_VIEW",
+  "/admin/content": "CONTENT_VIEW",
+  "/admin/leave": "LEAVE_VIEW",
+  "/admin/reports": "REPORT_VIEW",
+  "/admin/audit-logs": "AUDIT_VIEW",
+};
 
 export default function PortalShell({
   brand,
@@ -12,6 +31,12 @@ export default function PortalShell({
   links: [string, string][];
   children: ReactNode;
 }) {
+  const visible = links.filter(([label, href]) => {
+    const permission = linkPermissions[href];
+    if (!permission) return true;
+    return hasPermission(permission);
+  });
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:flex md:gap-8">
       <aside className="mb-6 md:mb-0 md:w-56 md:shrink-0">
@@ -20,7 +45,7 @@ export default function PortalShell({
           {role} PORTAL
         </p>
         <nav className="flex gap-2 overflow-x-auto md:flex-col md:gap-1">
-          {links.map(([label, href]) => (
+          {visible.map(([label, href]) => (
             <Link
               key={href}
               href={href}
@@ -30,6 +55,7 @@ export default function PortalShell({
             </Link>
           ))}
         </nav>
+        <LogoutButton />
       </aside>
       <div className="min-w-0 flex-1">{children}</div>
     </div>

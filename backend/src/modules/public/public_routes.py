@@ -1,37 +1,58 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.utils.common_schema import api_response_success
+from src.config.database import get_db
+from src.modules.public import public_services
+from src.modules.public.public_schemas import AdmissionApplySchema, ContactSchema
 
 router = APIRouter(prefix="/api/public", tags=["Public"])
 
 
 @router.get("/home")
-async def public_home():
-    return api_response_success(
-        data={
-            "college_name": "AstraVidya Institute of Technology",
-            "slogan": "Ignite. Innovate. Excel.",
-            "stats": {"students": 4200, "programs": 38, "faculty": 220, "established": 1998}
-        }
-    )
+async def home(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_home(db)
+
+
+@router.get("/site-content")
+async def site_content(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_site_content(db)
 
 
 @router.get("/notices")
-async def public_notices():
-    return api_response_success(data=[])
+async def notices(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_notices(db)
 
 
 @router.get("/courses")
-async def public_courses():
-    return api_response_success(data=[])
+async def courses(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_courses(db)
+
+
+@router.get("/departments")
+async def departments(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_departments(db)
+
+
+@router.get("/faculty")
+async def faculty(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_faculty(db)
 
 
 @router.get("/events")
-async def public_events():
-    return api_response_success(data=[])
+async def events(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_events(db)
 
 
 @router.get("/gallery")
-async def public_gallery():
-    return api_response_success(data=[])
+async def gallery(db: AsyncSession = Depends(get_db)):
+    return await public_services.get_gallery(db)
+
+
+@router.post("/admissions")
+async def apply(payload: AdmissionApplySchema, db: AsyncSession = Depends(get_db)):
+    return await public_services.apply_admission(db, payload)
+
+
+@router.post("/contact")
+async def contact(payload: ContactSchema, db: AsyncSession = Depends(get_db)):
+    return await public_services.send_contact_message(db, payload)

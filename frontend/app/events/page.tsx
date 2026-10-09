@@ -1,21 +1,38 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import PageBanner from "@/components/PageBanner";
 
-const events = [
-  ["14 Dec", "Annual Convocation — chief guest Dr. A. Sen"],
-  ["02 Nov", "TechFest 2026 — hackathon, robo-war, guest lectures"],
-  ["21 Oct", "Career Fair with 60+ recruiters"],
-  ["08 Jan", "Semester exams begin"],
-];
-
 export default function Events() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.publicEvents().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <>
       <PageBanner kicker="WHAT'S ON" title="Events" text="From fests to fairs — there is always something happening on campus." />
-      <section className="mx-auto max-w-4xl px-4 py-14 space-y-4">
-        {events.map(([date, title]) => (
-          <div key={title} className="flex flex-col gap-3 rounded-2xl border border-ink/10 bg-white p-5 sm:flex-row sm:items-center sm:gap-5">
-            <span className="w-fit rounded-xl bg-maroon px-4 py-2 font-display font-bold text-saffron">{date}</span>
-            <p className="font-semibold">{title}</p>
+      <section className="mx-auto max-w-4xl space-y-4 px-4 py-14">
+        {loading ? (
+          <p className="text-sm text-ink/50">Loading events...</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-ink/50">No events scheduled yet.</p>
+        ) : rows.map((e) => (
+          <div key={e.id} className="flex flex-col gap-3 rounded-2xl border border-ink/10 bg-white p-5 sm:flex-row sm:items-center sm:gap-5">
+            <span className="w-fit rounded-xl bg-maroon px-4 py-2 font-display font-bold text-saffron">
+              {e.event_date ? new Date(e.event_date).toLocaleDateString() : "TBA"}
+            </span>
+            <div>
+              <p className="font-semibold">{e.title}</p>
+              <p className="text-sm text-ink/60">{e.description || ""}</p>
+              {e.venue && <p className="text-xs text-ink/40">{e.venue}</p>}
+            </div>
           </div>
         ))}
       </section>

@@ -1,18 +1,49 @@
-import ModulePage from "@/components/ModulePage";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function AuditLogs() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.adminAuditLogs().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const columns = rows.length > 0 ? Object.keys(rows[0]).slice(0, 6) : [];
+
   return (
-    <ModulePage
-      title="Audit Logs"
-      desc="Every sensitive change — who did what, and when."
-      stats={[{ n: "1,204", l: "ENTRIES" }, { n: "38", l: "TODAY" }, { n: "6", l: "CRITICAL" }, { n: "180d", l: "RETAINED" }]}
-      columns={["When", "User", "Action", "Target"]}
-      rows={[
-        ["06 Oct 10:12", "super_admin", "permissions.update", "user:priya"],
-        ["06 Oct 09:40", "rahul", "student.create", "AV2026-1042"],
-        ["05 Oct 17:05", "neha", "notice.publish", "exam-schedule"],
-        ["05 Oct 15:32", "super_admin", "subadmin.deactivate", "user:amit"],
-      ]}
-    />
+    <>
+      <h1 className="font-display text-3xl font-black text-maroon">Audit Logs</h1>
+      <p className="mt-1 text-ink/80">Administrative activity across the portal.</p>
+      <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead>
+            <tr className="bg-maroon text-cream">
+              {columns.map((c) => (
+                <th key={c} className="px-4 py-3 text-left font-semibold">{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td className="px-4 py-3">Loading...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td className="px-4 py-3">No audit logs.</td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={r.id ?? i} className={i % 2 ? "bg-cream/60" : ""}>
+                {columns.map((c) => (
+                  <td key={c} className="px-4 py-3">{typeof r[c] === "object" ? JSON.stringify(r[c]) : String(r[c] ?? "-")}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

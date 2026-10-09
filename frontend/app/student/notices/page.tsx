@@ -1,17 +1,50 @@
-import ModulePage from "@/components/ModulePage";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function StudentNotices() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.studentNotices().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
   return (
-    <ModulePage
-      title="Notices"
-      desc="Announcements from the institute and your faculty."
-      stats={[{ n: "12", l: "ACTIVE" }, { n: "4", l: "THIS WEEK" }, { n: "2", l: "IMPORTANT" }, { n: "All", l: "ROLES" }]}
-      columns={["Title", "From", "Posted", "Status"]}
-      rows={[
-        ["Exam schedule out", "Admin", "28 Sep", "Live"],
-        ["Lab 2 shifted to Friday", "Prof. Ghosh", "03 Oct", "Live"],
-        ["Scholarship deadline", "Admin", "25 Sep", "Live"],
-      ]}
-    />
+    <>
+      <h1 className="font-display text-3xl font-black text-maroon">Notices</h1>
+      <p className="mt-1 text-ink/80">Announcements from the institute and your faculty.</p>
+      <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead>
+            <tr className="bg-maroon text-cream">
+              <th className="px-4 py-3 text-left font-semibold">Title</th>
+              <th className="px-4 py-3 text-left font-semibold">Audience</th>
+              <th className="px-4 py-3 text-left font-semibold">Posted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={3} className="px-4 py-3">Loading...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={3} className="px-4 py-3">No notices.</td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={r.id ?? i} className={i % 2 ? "bg-cream/60" : ""}>
+                <td className="px-4 py-3">
+                  <div className="font-semibold">{r.title}</div>
+                  <div className="text-xs text-ink/50">{r.body}</div>
+                </td>
+                <td className="px-4 py-3">{r.audience}</td>
+                <td className="px-4 py-3">{r.created_at ? new Date(r.created_at).toLocaleDateString() : "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

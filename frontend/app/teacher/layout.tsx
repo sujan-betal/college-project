@@ -1,4 +1,5 @@
 import PortalShell from "@/components/PortalShell";
+import RequireAuth from "@/components/RequireAuth";
 
 const links: [string, string][] = [
   ["Overview", "/teacher"],
@@ -13,8 +14,10 @@ const links: [string, string][] = [
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   return (
-    <PortalShell brand="AstraVidya" role="TEACHER" links={links}>
-      {children}
-    </PortalShell>
+    <RequireAuth role="TEACHER">
+      <PortalShell brand="AstraVidya" role="TEACHER" links={links}>
+        {children}
+      </PortalShell>
+    </RequireAuth>
   );
 }

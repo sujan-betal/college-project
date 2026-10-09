@@ -1,34 +1,53 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.database import get_db
 from src.middleware.auth import authorization
-from src.modules.auth.auth_schemas import LoginSchema, ChangePasswordSchema
-from src.modules.auth.auth_services import login, me, change_password
+from src.modules.auth.auth_schemas import (
+    LoginSchema,
+    ChangePasswordSchema,
+    RefreshTokenSchema,
+    ResetPasswordSchema,
+)
+from src.modules.auth import auth_services
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
 @router.post("/login")
 async def user_login(payload: LoginSchema, db: AsyncSession = Depends(get_db)):
-    return await login(db, payload)
+    return await auth_services.login(db, payload)
 
 
 @router.get("/me")
 async def current_user(
     db: AsyncSession = Depends(get_db),
-    user=Depends(authorization(allowed_roles=["STUDENT", "TEACHER", "SUB_ADMIN", "SUPER_ADMIN"]))
+    user=Depends(authorization(allowed_roles=["STUDENT", "TEACHER", "ADMIN"]))
 ):
-    return await me(db, user)
+    return await auth_services.me(db, user)
 
 
 @router.put("/password/change")
 async def password_change(
     payload: ChangePasswordSchema,
     db: AsyncSession = Depends(get_db),
-    user=Depends(authorization(allowed_roles=["STUDENT", "TEACHER", "SUB_ADMIN", "SUPER_ADMIN"]))
+    user=Depends(authorization(allowed_roles=["STUDENT", "TEACHER", "ADMIN"]))
 ):
-    return await change_password(db, user, payload)
+    return await auth_services.change_password(db, user, payload)
+
+
+@router.post("/refresh")
+async def refresh_token(payload: RefreshTokenSchema, db: AsyncSession = Depends(get_db)):
+    return await auth_services.refresh(db, payload.refresh_token)
+
+
+@router.post("/reset")
+async def reset(
+    payload: ResetPasswordSchema,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(authorization(allowed_roles=["ADMIN"]))
+):
+    return await auth_services.reset_password(db, payload)
 
 
 @router.post("/logout")

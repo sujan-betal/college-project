@@ -1,26 +1,43 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import PageBanner from "@/components/PageBanner";
 
-const notices = [
-  ["05 Oct", "Scholarship applications close 20 October."],
-  ["28 Sep", "Semester exams begin 8 January — schedule published."],
-  ["15 Sep", "TechFest 2026 registrations open."],
-  ["02 Sep", "Hostel fee payment deadline extended to 30 September."],
-  ["20 Aug", "New AI & ML lab inaugurated by the Director."],
-];
-
 export default function Notices() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.publicNotices().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <>
       <PageBanner kicker="ANNOUNCEMENTS" title="Notices & News" text="Official announcements for students, parents, and staff — updated daily." />
       <section className="mx-auto max-w-4xl px-4 py-14">
-        <ul className="divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-white">
-          {notices.map(([date, text]) => (
-            <li key={text} className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
-              <span className="w-fit rounded-full bg-saffron-soft px-3 py-1 text-xs font-bold text-maroon">{date}</span>
-              <p>{text}</p>
-            </li>
-          ))}
-        </ul>
+        {loading ? (
+          <p className="text-sm text-ink/50">Loading notices...</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-ink/50">No notices published.</p>
+        ) : (
+          <ul className="divide-y divide-ink/10 rounded-2xl border border-ink/10 bg-white">
+            {rows.map((n) => (
+              <li key={n.id} className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+                <span className="w-fit rounded-full bg-saffron-soft px-3 py-1 text-xs font-bold text-maroon">
+                  {n.created_at ? new Date(n.created_at).toLocaleDateString() : "-"}
+                </span>
+                <div>
+                  <p className="font-semibold">{n.title}</p>
+                  <p className="text-sm text-ink/60">{n.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </>
   );

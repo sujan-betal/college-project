@@ -1,17 +1,87 @@
-import ModulePage from "@/components/ModulePage";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function AdminExams() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({ name: "", course_id: "", semester: "", start_date: "", is_published: "0" });
+
+  function load() {
+    setLoading(true);
+    api.adminExams().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }
+
+  useEffect(load, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage("");
+    const res = await api.adminCreateExam({
+      name: form.name,
+      course_id: form.course_id ? Number(form.course_id) : undefined,
+      semester: form.semester ? Number(form.semester) : undefined,
+      start_date: form.start_date || undefined,
+      is_published: Number(form.is_published),
+    });
+    if (res.success) {
+      setMessage("Exam created.");
+      setForm({ name: "", course_id: "", semester: "", start_date: "", is_published: "0" });
+      load();
+    } else {
+      setMessage(res.message || "Failed to create exam");
+    }
+  }
+
   return (
-    <ModulePage
-      title="Exams"
-      desc="Exam schedules, results publishing, and admit cards."
-      stats={[{ n: "3", l: "UPCOMING" }, { n: "12", l: "PUBLISHED" }, { n: "1,980", l: "APPEARED" }, { n: "91%", l: "PASSED" }]}
-      columns={["Exam", "Date", "Semester", "Status"]}
-      rows={[
-        ["Semester End", "08 Jan", "3", "Scheduled"],
-        ["Mid-Term", "10 Oct", "5", "Results out"],
-        ["Practical Viva", "12 Oct", "3", "Scheduled"],
-      ]}
-    />
+    <>
+      <h1 className="font-display text-3xl font-black text-maroon">Exams</h1>
+      <p className="mt-1 text-ink/80">Exam schedules, results publishing, and admit cards.</p>
+      <form onSubmit={handleSubmit} className="mt-6 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-3">
+        <input required placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <input placeholder="Course ID" type="number" value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <input placeholder="Semester" type="number" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <input placeholder="Start date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <select value={form.is_published} onChange={(e) => setForm({ ...form, is_published: e.target.value })} className="rounded-lg border border-ink/15 px-3 py-2.5">
+          <option value="0">Draft</option>
+          <option value="1">Published</option>
+        </select>
+        <button className="rounded-full bg-maroon px-6 py-2.5 font-semibold text-cream">Create Exam</button>
+      </form>
+      {message && <p className="mt-2 text-sm text-ink/70">{message}</p>}
+      <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead>
+            <tr className="bg-maroon text-cream">
+              <th className="px-4 py-3 text-left font-semibold">Name</th>
+              <th className="px-4 py-3 text-left font-semibold">Course</th>
+              <th className="px-4 py-3 text-left font-semibold">Semester</th>
+              <th className="px-4 py-3 text-left font-semibold">Start</th>
+              <th className="px-4 py-3 text-left font-semibold">Published</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="px-4 py-3">Loading...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={5} className="px-4 py-3">No exams.</td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={r.id ?? i} className={i % 2 ? "bg-cream/60" : ""}>
+                <td className="px-4 py-3">{r.name}</td>
+                <td className="px-4 py-3">{r.course_id}</td>
+                <td className="px-4 py-3">{r.semester}</td>
+                <td className="px-4 py-3">{r.start_date}</td>
+                <td className="px-4 py-3">{r.is_published ? "Yes" : "No"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

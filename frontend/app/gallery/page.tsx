@@ -1,25 +1,38 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import PageBanner from "@/components/PageBanner";
 
-const tiles = [
-  "from-maroon to-maroon-dark",
-  "from-teal to-ink",
-  "from-saffron to-maroon",
-  "from-ink to-maroon-dark",
-  "from-maroon-dark to-teal",
-  "from-teal to-maroon",
-];
-
 export default function Gallery() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.publicGallery().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <>
       <PageBanner kicker="CAMPUS LIFE" title="Gallery" text="A glimpse of our labs, fests, and the everyday life at AstraVidya." />
       <section className="mx-auto grid max-w-6xl grid-cols-2 gap-4 px-4 py-14 md:grid-cols-3">
-        {tiles.map((t, i) => (
-          <div
-            key={i}
-            className={`h-44 rounded-2xl bg-gradient-to-br ${t} grid place-items-center text-cream/70 font-display text-lg hover:scale-[1.02] transition`}
-          >
-            Photo {i + 1}
+        {loading ? (
+          <p className="text-sm text-ink/50">Loading gallery...</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-ink/50">No photos yet.</p>
+        ) : rows.map((g) => (
+          <div key={g.id} className="h-44 overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-sm">
+            {g.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={g.image_url} alt={g.title} className="h-full w-full object-cover" />
+            ) : (
+              <div className="grid h-full place-items-center bg-gradient-to-br from-maroon to-maroon-dark text-cream/80 font-display">
+                {g.title}
+              </div>
+            )}
           </div>
         ))}
       </section>

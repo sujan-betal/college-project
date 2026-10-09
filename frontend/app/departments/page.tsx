@@ -1,23 +1,33 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import PageBanner from "@/components/PageBanner";
 
-const depts = [
-  ["Computer Science & Engineering", "AI, cybersecurity, and software systems labs."],
-  ["Electronics & Communication", "VLSI, embedded systems, and signal processing."],
-  ["Mechanical Engineering", "Design, thermal, and manufacturing excellence."],
-  ["Data Science", "Statistics, ML, and decision sciences."],
-  ["Business Administration", "Finance, analytics, and entrepreneurship."],
-  ["Basic Sciences & Humanities", "The foundation of analytical thinking."],
-];
-
 export default function Departments() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.publicDepartments().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
   return (
     <>
-      <PageBanner kicker="OUR SCHOOLS" title="Departments" text="Six schools, one campus — each with dedicated labs, faculty, and placement cells." />
+      <PageBanner kicker="OUR SCHOOLS" title="Departments" text="Every school has dedicated labs, faculty, and placement cells." />
       <section className="mx-auto grid max-w-6xl gap-4 px-4 py-14 md:grid-cols-3">
-        {depts.map(([name, desc]) => (
-          <div key={name} className="rounded-2xl border border-ink/10 bg-white p-6 hover:-translate-y-1 hover:shadow-md transition">
-            <h3 className="font-display text-lg font-bold text-maroon">{name}</h3>
-            <p className="mt-2 text-sm text-ink/60">{desc}</p>
+        {loading ? (
+          <p className="text-sm text-ink/50">Loading departments...</p>
+        ) : rows.length === 0 ? (
+          <p className="text-sm text-ink/50">No departments available yet.</p>
+        ) : rows.map((d) => (
+          <div key={d.id} className="rounded-2xl border border-ink/10 bg-white p-6 hover:-translate-y-1 hover:shadow-md transition">
+            <h3 className="font-display text-lg font-bold text-maroon">{d.name}</h3>
+            <p className="text-xs text-ink/40">{d.code}</p>
+            <p className="mt-2 text-sm text-ink/60">{d.description || "-"}</p>
           </div>
         ))}
       </section>

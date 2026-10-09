@@ -12,6 +12,7 @@ from src.models.activity_model import (
     AdmissionApplication,
     AuditLog
 )
+from src.models.site_model import Event, GalleryItem, SiteContent, Certificate, ContactMessage
 
 __all__ = [
     "User",
@@ -35,4 +36,9 @@ __all__ = [
     "LeaveRequest",
     "AdmissionApplication",
     "AuditLog",
+    "Event",
+    "GalleryItem",
+    "SiteContent",
+    "Certificate",
+    "ContactMessage",
 ]

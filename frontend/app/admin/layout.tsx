@@ -1,8 +1,9 @@
 import PortalShell from "@/components/PortalShell";
+import RequireAuth from "@/components/RequireAuth";
 
 const links: [string, string][] = [
   ["Dashboard", "/admin"],
-  ["Sub-Admins", "/admin/subadmins"],
+  ["Admins", "/admin/subadmins"],
   ["Students", "/admin/students"],
   ["Teachers", "/admin/teachers"],
   ["Courses", "/admin/courses"],
@@ -18,8 +19,10 @@ const links: [string, string][] = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <PortalShell brand="AstraVidya" role="ADMIN" links={links}>
-      {children}
-    </PortalShell>
+    <RequireAuth role="ADMIN">
+      <PortalShell brand="AstraVidya" role="ADMIN" links={links}>
+        {children}
+      </PortalShell>
+    </RequireAuth>
   );
 }

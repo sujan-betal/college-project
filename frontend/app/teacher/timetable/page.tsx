@@ -1,19 +1,55 @@
-import ModulePage from "@/components/ModulePage";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function TeacherTimetable() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.teacherSubjects().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const sections = rows.map((r) => r.section).filter(Boolean);
+  const uniqueSections = Array.from(new Set(sections));
+
   return (
-    <ModulePage
-      title="Timetable"
-      desc="Your weekly class schedule."
-      stats={[{ n: "14", l: "PERIODS/WK" }, { n: "4", l: "SUBJECTS" }, { n: "2", l: "LABS" }, { n: "3", l: "OFFICE HRS" }]}
-      columns={["Day", "10:00", "12:30", "14:00"]}
-      rows={[
-        ["Mon", "VLSI CSE-3A", "NLP CSE-5B", "—"],
-        ["Tue", "NLP CSE-5B", "—", "Office hours"],
-        ["Wed", "VLSI Lab", "VLSI Lab", "—"],
-        ["Thu", "Embedded CSE-3A", "—", "Office hours"],
-        ["Fri", "—", "Signals CSE-3A", "—"],
-      ]}
-    />
+    <>
+      <h1 className="font-display text-3xl font-black text-maroon">Timetable</h1>
+      <p className="mt-1 text-ink/80">Subjects and sections assigned to you.</p>
+      <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead>
+            <tr className="bg-maroon text-cream">
+              <th className="px-4 py-3 text-left font-semibold">Subject</th>
+              <th className="px-4 py-3 text-left font-semibold">Course</th>
+              <th className="px-4 py-3 text-left font-semibold">Section</th>
+              <th className="px-4 py-3 text-left font-semibold">Academic Year</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={4} className="px-4 py-3">Loading...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={4} className="px-4 py-3">No subjects assigned.</td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={i} className={i % 2 ? "bg-cream/60" : ""}>
+                <td className="px-4 py-3">{r.subject_id}</td>
+                <td className="px-4 py-3">{r.course_id}</td>
+                <td className="px-4 py-3">{r.section}</td>
+                <td className="px-4 py-3">{r.academic_year || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-3 text-xs text-ink/40">
+        Sections: {uniqueSections.length > 0 ? uniqueSections.join(", ") : "none"}
+      </p>
+    </>
   );
 }

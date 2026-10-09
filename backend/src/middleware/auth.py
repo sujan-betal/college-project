@@ -9,7 +9,7 @@ import logging
 
 from src.config.database import get_db
 from src.models.user_model import User
-from src.models.permission_model import UserPermission, Permission
+from src.models.permission_model import Permission, UserPermission
 
 load_dotenv()
 
@@ -21,12 +21,9 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 security = HTTPBearer()
 
 
-def authorization(
-    allowed_roles: list = None,
-    required_permissions: list = None
-):
+def authorization(allowed_roles: list = None, required_permissions: list = None):
     allowed_roles = allowed_roles or []
-    required_permissions = required_permissions or []
+    required_permissions = [p.upper() for p in (required_permissions or [])]
 
     async def authorize_user(
         credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -55,12 +52,7 @@ def authorization(
             # --------------------------------------------------
 
             try:
-                decoded = jwt.decode(
-                    token,
-                    SECRET_KEY,
-                    algorithms=[ALGORITHM]
-                )
-
+                decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             except JWTError:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -68,7 +60,7 @@ def authorization(
                 )
 
             # --------------------------------------------------
-            # 4. Get userid and role from JWT
+            # 4. Extract userid and role
             # --------------------------------------------------
 
             userid = decoded.get("userid") or decoded.get("user_id")
@@ -84,35 +76,23 @@ def authorization(
             # 5. Check Allowed Roles
             # --------------------------------------------------
 
-            if allowed_roles:
+            if allowed_roles and role not in [r.upper() for r in allowed_roles]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: invalid role"
+                )
 
-                allowed = [
-                    r.upper()
-                    for r in allowed_roles
-                ]
-
-                if role not in allowed:
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Access denied: invalid role"
-                    )
-
-            if role not in ("STUDENT", "TEACHER", "SUB_ADMIN", "SUPER_ADMIN"):
+            if role not in ("STUDENT", "TEACHER", "ADMIN"):
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid role"
                 )
 
             # --------------------------------------------------
-            # 6. Find User by userid
+            # 6. Find User
             # --------------------------------------------------
 
-            result = await db.execute(
-                select(User).where(
-                    User.userid == userid
-                )
-            )
-
+            result = await db.execute(select(User).where(User.userid == userid))
             existing_user = result.scalar_one_or_none()
 
             if not existing_user:
@@ -152,45 +132,36 @@ def authorization(
                 )
 
             # --------------------------------------------------
-            # 10. Super Admin bypasses permission checks
+            # 10. Load granted permissions
             # --------------------------------------------------
 
-            if role == "SUPER_ADMIN":
-                return existing_user
-
-            # --------------------------------------------------
-            # 11. Get Permissions
-            # --------------------------------------------------
-
-            perm_result = await db.execute(
-                select(Permission.code)
-                .join(UserPermission, UserPermission.permissionid == Permission.id)
-                .where(UserPermission.userid == existing_user.userid)
-            )
-
-            permissions = [
+            permissions = {
                 (code or "").upper()
-                for code in perm_result.scalars().all()
-            ]
+                for code in (await db.execute(
+                    select(Permission.code)
+                    .join(UserPermission, UserPermission.permissionid == Permission.id)
+                    .where(UserPermission.userid == existing_user.userid)
+                )).scalars().all()
+            }
+
+            # --------------------------------------------------
+            # 11. "ALL" grants everything
+            # --------------------------------------------------
 
             if "ALL" in permissions:
                 return existing_user
 
             # --------------------------------------------------
-            # 12. Required Permissions
+            # 12. Check required permissions
             # --------------------------------------------------
 
             if required_permissions:
+                missing = [p for p in required_permissions if p not in permissions]
 
-                has_permissions = all(
-                    permission.upper() in permissions
-                    for permission in required_permissions
-                )
-
-                if not has_permissions:
+                if missing:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Access denied: insufficient permissions"
+                        detail=f"Access denied: missing permission {missing[0]}"
                     )
 
             # --------------------------------------------------
@@ -203,9 +174,7 @@ def authorization(
             raise
 
         except Exception:
-
             logger.exception("AUTH ERROR")
-
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error"

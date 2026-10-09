@@ -1,17 +1,53 @@
-import ModulePage from "@/components/ModulePage";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function AdminReports() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.adminReports().then((res) => {
+      if (res.success) setData(res.data);
+      setLoading(false);
+    });
+  }, []);
+
   return (
-    <ModulePage
-      title="Reports"
-      desc="Export Excel and PDF reports for finance, academics, and admissions."
-      stats={[{ n: "14", l: "TEMPLATES" }, { n: "8", l: "THIS MONTH" }, { n: "2", l: "SCHEDULED" }, { n: "Excel+PDF", l: "FORMATS" }]}
-      columns={["Report", "Generated", "Size", "Format"]}
-      rows={[
-        ["Fee collection Sep", "30 Sep", "1.2 MB", "Excel"],
-        ["Attendance overview", "28 Sep", "840 KB", "PDF"],
-        ["Admissions funnel", "25 Sep", "620 KB", "Excel"],
-      ]}
-    />
+    <>
+      <h1 className="font-display text-3xl font-black text-maroon">Reports</h1>
+      <p className="mt-1 text-ink/80">Key institutional metrics.</p>
+      {loading ? (
+        <p className="mt-6 text-sm">Loading...</p>
+      ) : !data ? (
+        <p className="mt-6 text-sm">No report data.</p>
+      ) : Array.isArray(data) ? (
+        <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
+          <table className="w-full min-w-[560px] text-sm">
+            <tbody>
+              {data.map((row: any, i: number) => (
+                <tr key={i} className={i % 2 ? "bg-cream/60" : ""}>
+                  {Object.values(row).slice(0, 6).map((v: any, j: number) => (
+                    <td key={j} className="px-4 py-3">{typeof v === "object" ? JSON.stringify(v) : String(v ?? "-")}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {Object.entries(data).map(([k, v]) => (
+            <div key={k} className="rounded-2xl border border-ink/10 bg-white p-6 shadow-sm">
+              <p className="font-display text-3xl font-black text-maroon">
+                {typeof v === "object" ? JSON.stringify(v) : String(v)}
+              </p>
+              <p className="mt-1 text-sm tracking-widest text-ink/60">{k.toUpperCase()}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
   );
 }

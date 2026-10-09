@@ -112,7 +112,7 @@ class RoleTemplate(Base):
     templateid = Column(
         String(36),
         default=lambda: str(uuid.uuid4()),
-        server_default=text("(UUID())"),
+        server_default=text("gen_random_uuid()"),
         unique=True,
         nullable=False
     )

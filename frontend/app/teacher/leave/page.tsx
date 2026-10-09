@@ -1,17 +1,78 @@
-import ModulePage from "@/components/ModulePage";
+"use client";
+
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function TeacherLeave() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [form, setForm] = useState({ from_date: "", to_date: "", reason: "" });
+
+  function load() {
+    setLoading(true);
+    api.teacherLeave().then((res) => {
+      if (res.success) setRows(res.data || []);
+      setLoading(false);
+    });
+  }
+
+  useEffect(load, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage("");
+    const res = await api.teacherApplyLeave({
+      from_date: form.from_date,
+      to_date: form.to_date,
+      reason: form.reason || undefined,
+    });
+    if (res.success) {
+      setMessage("Leave applied.");
+      setForm({ from_date: "", to_date: "", reason: "" });
+      load();
+    } else {
+      setMessage(res.message || "Failed to apply leave");
+    }
+  }
+
   return (
-    <ModulePage
-      title="Leave"
-      desc="Apply for leave and track approvals."
-      stats={[{ n: "9", l: "USED" }, { n: "3", l: "PENDING" }, { n: "12", l: "BALANCE" }, { n: "1", l: "REJECTED" }]}
-      columns={["Period", "Reason", "Applied", "Status"]}
-      rows={[
-        ["10–12 Oct", "Family event", "04 Oct", "Pending"],
-        ["02–03 Sep", "Medical", "28 Aug", "Approved"],
-        ["14 Aug", "Personal", "10 Aug", "Rejected"],
-      ]}
-    />
+    <>
+      <h1 className="font-display text-3xl font-black text-maroon">Leave</h1>
+      <p className="mt-1 text-ink/80">Apply for leave and track requests.</p>
+      <form onSubmit={handleSubmit} className="mt-6 grid gap-3 rounded-2xl border border-ink/10 bg-white p-6 shadow-sm md:grid-cols-3">
+        <input required placeholder="From" type="date" value={form.from_date} onChange={(e) => setForm({ ...form, from_date: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <input required placeholder="To" type="date" value={form.to_date} onChange={(e) => setForm({ ...form, to_date: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <input placeholder="Reason" value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} className="rounded-lg border border-ink/15 px-4 py-2.5" />
+        <button className="rounded-full bg-maroon px-6 py-2.5 font-semibold text-cream md:col-span-3 w-fit">Apply Leave</button>
+      </form>
+      {message && <p className="mt-2 text-sm text-ink/70">{message}</p>}
+      <div className="mt-8 overflow-x-auto rounded-2xl border border-ink/10 bg-white shadow-sm">
+        <table className="w-full min-w-[560px] text-sm">
+          <thead>
+            <tr className="bg-maroon text-cream">
+              <th className="px-4 py-3 text-left font-semibold">From</th>
+              <th className="px-4 py-3 text-left font-semibold">To</th>
+              <th className="px-4 py-3 text-left font-semibold">Reason</th>
+              <th className="px-4 py-3 text-left font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={4} className="px-4 py-3">Loading...</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={4} className="px-4 py-3">No leave requests.</td></tr>
+            ) : rows.map((r, i) => (
+              <tr key={r.id ?? i} className={i % 2 ? "bg-cream/60" : ""}>
+                <td className="px-4 py-3">{r.from_date}</td>
+                <td className="px-4 py-3">{r.to_date}</td>
+                <td className="px-4 py-3">{r.reason}</td>
+                <td className="px-4 py-3">{r.status}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
